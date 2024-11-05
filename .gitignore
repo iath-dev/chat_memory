@@ -1,0 +1,13 @@
+# Archivos de Poetry
+poetry.lock
+poetry.toml
+
+# Directorios de Poetry
+venv/
+.cache/
+
+# Otros archivos y directorios
+__pycache__/
+*.pyc
+*.log
+*.tmp

@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "chat-memory"
+version = "0.1.0"
+description = ""
+authors = ["Daniel Develop <57878266+iath-dev@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+streamlit = "^1.39.0"
+langchain-core = "^0.3.15"
+langchain-ollama = "^0.2.0"
+ollama = "^0.3.3"
+pydantic = "^2.9.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
