@@ -4,6 +4,7 @@ poetry.toml
 
 # Directorios de Poetry
 venv/
+.venv/
 .cache/
 
 # Otros archivos y directorios
