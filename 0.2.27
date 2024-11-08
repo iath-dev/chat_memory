@@ -1,0 +1,14 @@
+Using version ^0.2.45 for langgraph
+
+Updating dependencies
+Resolving dependencies...
+
+Package operations: 5 installs, 0 updates, 0 removals
+
+  - Installing httpx-sse (0.4.0)
+  - Installing msgpack (1.1.0)
+  - Installing langgraph-checkpoint (2.0.2)
+  - Installing langgraph-sdk (0.1.35)
+  - Installing langgraph (0.2.45)
+
+Writing lock file

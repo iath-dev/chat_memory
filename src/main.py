@@ -4,62 +4,86 @@ from langchain_ollama import ChatOllama
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
 
-from src.store.store import MessagesStore
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import START, StateGraph
+
+from src.store.memory import State
+
+@st.cache_resource
+def get_prompt_template():
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", "Eres un ayudante virtual" ),
+            ("system", "Response como un mayordomo"), 
+            ("system", "Debes responder en {language}"),
+            MessagesPlaceholder(variable_name="messages"),
+        ]
+    )
+
+    return prompt
+
+@st.cache_resource
+def get_model():
+    return ChatOllama(model="llama3.2:1b")
+
+def call_model(state: State):
+    model = get_model()
+    prompt = get_prompt_template()
+
+    chain = prompt | model
+
+    response = chain.invoke(state)
+
+    return {"messages": response}
+
+@st.cache_resource
+def get_state_graph():
+    workflow = StateGraph(state_schema=State)
+
+    workflow.add_edge(START, "model")
+    workflow.add_node("model", call_model)
+
+    return workflow
 
 def main():
     st.set_page_config(page_title="Chatbot with Memory", page_icon="🤖")
 
-    st.title("💬 Chatbot")
-    st.caption("🚀 An Chatbot powered by LangChain and Qdrant")
+    with st.sidebar:
+        st.title("💬 Chatbot")
+        st.caption("🚀 An Chatbot powered by LangChain and Qdrant")
 
-    store = MessagesStore()
+        language = st.selectbox("Cambiar idioma", ["Español", "Inglés", "Francés", "Alemán", "Italiano"])
 
-    history = store.get_by_session_id("1")
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-    history.add_ai_message(AIMessage(content="Hola"))
-
-    if "history" not in st.session_state:
-        st.session_state.history = history.messages if history else []
-
-    for msg in st.session_state.history:
+    for msg in st.session_state.messages:
+        if isinstance(msg, HumanMessage):
+            with st.chat_message("user"):
+                st.markdown(msg.content)
         if isinstance(msg, AIMessage):
-            st.chat_message("ai").write(msg.content)
-        elif isinstance(msg, HumanMessage):
-            st.chat_message("user").write(msg.content)
+            with st.chat_message("ai"):
+                st.markdown(msg.content)
 
-    base_prompt = ChatPromptTemplate.from_messages([
-        ("system", "Eres un asistente que es bueno en {ability}"),
-        MessagesPlaceholder(variable_name="history"),
-        ("human", "{question}"),
-    ])
+    workflow = get_state_graph()
 
-    chain = base_prompt | ChatOllama(model="llama3.2:1b")
+    app = workflow.compile(checkpointer=MemorySaver())
 
-    chain_history = RunnableWithMessageHistory(
-        chain,
-        store.get_by_session_id,
-        input_messages_key="question",
-        history_messages_key="history",
-    )
+    config = {"configurable": {"thread_id": "abc123"}}
 
-    if prompt := st.chat_input():
-        st.session_state.history.append(HumanMessage(content=prompt))
-        st.chat_message("user").write(prompt)
+    if chat_input := st.chat_input("Como puedo ayudarte"):
+        input_messages = HumanMessage(chat_input)
+        st.session_state.messages.append(input_messages)
 
-        response = chain_history.invoke(
-            {"ability": "Asesoria Contable", "question": f"{prompt}"},
-            config={"configurable": {"session_id": "foo"}}
-        )
+        with st.chat_message("user"):
+            st.markdown(chat_input)
 
-        print(response)
+        output = app.invoke({"messages": st.session_state.messages, "language": language}, config)
 
-        ai_message = AIMessage(content=response.content)
-        st.session_state.history.append(ai_message)
+        response = output["messages"][-1].content
+        st.session_state.messages.append(AIMessage(response))
 
-        st.chat_message("ai").write(response.content)
-
-        # response = chat_handler.handle_query(prompt)
-        # st.session_state.history.append({"role": "bot", "content": response})
-        # st.chat_message("bot").write(response)
+        with st.chat_message("ai"):
+            st.markdown(response)
+    

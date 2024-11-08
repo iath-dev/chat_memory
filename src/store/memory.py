@@ -1,16 +1,9 @@
-from typing import List
+from typing import Sequence
 
-from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
+from typing_extensions import Annotated, TypedDict
 
-from pydantic import BaseModel, Field
-
-class InMemoryHistory(BaseChatMessageHistory, BaseModel):
-
-    messages: List[BaseMessage] = Field(default_factory=list)
-
-    def add_message(self, messages: List[BaseMessage]) -> None:
-        self.messages.extend(messages)
-
-    def clear(self) -> None:
-        self.messages = []
+class State(TypedDict):
+    messages: Annotated[Sequence[BaseMessage], add_messages]
+    language: str
