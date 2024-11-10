@@ -6,13 +6,20 @@ authors = ["Daniel Develop <57878266+iath-dev@users.noreply.github.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10,<3.13"
 streamlit = "^1.39.0"
 langchain-core = "^0.3.15"
 langchain-ollama = "^0.2.0"
 ollama = "^0.3.3"
 pydantic = "^2.9.2"
 langgraph = "^0.2.45"
+python-dotenv = "^1.0.1"
+langchain-pinecone = "^0.2.0"
+pinecone = "^5.3.1"
+pinecone-client = "^5.0.1"
+langchain = "^0.3.7"
+chromadb = "^0.5.18"
+langchain-chroma = "^0.1.4"
 
 
 [build-system]
