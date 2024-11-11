@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import uuid
 
 from langchain_ollama import ChatOllama
 
@@ -25,7 +26,6 @@ def get_prompt_template():
         [
             ("system", "Eres un ayudante virtual" ),
             ("system", "Response como un mayordomo"), 
-            ("system", "Debes responder en {language}"),
             MessagesPlaceholder(variable_name="messages"),
         ]
     )
@@ -48,17 +48,7 @@ def call_model(state: State):
 
 @st.cache_resource
 def get_db():
-    print(1)
-    return VectorDatabase(index_name=st.session_state.index_name)
-
-def get_context(conversation_id: str):
-    db = get_db()
-
-    history = db.search_history(conversation_id=conversation_id)
-    context = "\n".join(history)
-
-    return context
-
+    return VectorDatabase()
 
 @st.cache_resource
 def get_state_graph():
@@ -76,34 +66,27 @@ def main():
 
     conversation_id="chat_id"
 
-    os.environ["PINECONE_API_KEY"] = config.PINECONE_API_KEY
-
-    with st.sidebar:
-        st.title("💬 Chatbot")
-        st.caption("🚀 An Chatbot powered by LangChain and Qdrant")
-
-        language = st.selectbox("Cambiar idioma", ["Español", "Inglés", "Francés", "Alemán", "Italiano"])
-
     if "index_name" not in st.session_state:
         st.session_state.index_name = config.CHAT_ID
 
+    os.environ["PINECONE_API_KEY"] = config.PINECONE_API_KEY
+
     db = get_db()
+
+    with st.sidebar:
+        st.title("💬 Chatbot")
+        st.caption("🚀 An Chatbot powered by LangChain")
 
     if "messages" not in st.session_state:
         history = db.search_history(conversation_id=conversation_id)
 
-        print("="*15, "History", "="*15)
-        print(history)
+        messages = [{ "role": history["metadatas"][index]["role"], "content": document } for index, document in enumerate(history["documents"])]
 
-        st.session_state.messages = []
+        st.session_state.messages = messages
 
     for msg in st.session_state.messages:
-        if isinstance(msg, HumanMessage):
-            with st.chat_message("user"):
-                st.markdown(msg.content)
-        if isinstance(msg, AIMessage):
-            with st.chat_message("ai"):
-                st.markdown(msg.content)
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
     workflow = get_state_graph()
 
@@ -112,18 +95,17 @@ def main():
     config = {"configurable": {"thread_id": conversation_id}}
 
     if chat_input := st.chat_input("Como puedo ayudarte"):
-        input_messages = HumanMessage(chat_input)
-        st.session_state.messages.append(input_messages)
+        st.session_state.messages.append({ "role": "user", "content": chat_input })
         db.add_message(message=chat_input, role="user", conversation_id=conversation_id)
 
         with st.chat_message("user"):
             st.markdown(chat_input)
 
-        output = app.invoke({"messages": st.session_state.messages, "language": language}, config)
+        output = app.invoke({"messages": st.session_state.messages}, config)
 
         response = output["messages"][-1].content
         db.add_message(message=response, role="ai", conversation_id=conversation_id)
-        st.session_state.messages.append(AIMessage(response))
+        st.session_state.messages.append({ "role": "ai", "content": response })
 
         with st.chat_message("ai"):
             st.markdown(response)
