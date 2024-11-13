@@ -1,6 +1,4 @@
 import streamlit as st
-import os
-
 
 # Importar el modelo ChatOllama y componentes de LangChain para el chatbot
 from langchain_ollama import ChatOllama
@@ -25,7 +23,10 @@ def get_prompt_template():
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", "Eres un ayudante virtual" ),
-            ("system", "Response como un mayordomo"), 
+            ("system", "Eres un Asesor Financiero que ayuda a calcular gastos y gestionar presupuestos"),
+            ("system", "Responde de forma formal"),
+            ("system", "Responde de forma precisa los calculos pedidos"),
+            ("system", "Muestra el calculo realizado"),
             MessagesPlaceholder(variable_name="messages"),
         ]
     )
@@ -67,20 +68,16 @@ def get_state_graph():
 def main():
     """Función principal de la aplicación. Configura el chatbot y gestiona la conversación."""
     # Configuración de la página en Streamlit
-    st.set_page_config(page_title="Chatbot with Memory", page_icon="🤖")
+    st.set_page_config(page_title="Asistente Financiero Virtual", page_icon="🪙")
 
     # Obtener configuración y definir ID de la conversación
     config = get_config()
-    conversation_id="chat_id"
-
-    # Configuración de índice en el estado de sesión
-    if "index_name" not in st.session_state:
-        st.session_state.index_name = config.CHAT_ID
+    conversation_id="financial_assistant"
 
     # Conectar con la base de datos vectorial
     db = get_db()
 
-    st.title("💬 Chatbot")
+    st.title("🏦 Asistente Financiero Virtual")
     st.caption("🚀 An Chatbot powered by LangChain")
 
     # Cargar historial de mensajes en la sesión si no están ya presentes
